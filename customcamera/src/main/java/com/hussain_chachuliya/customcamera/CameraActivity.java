@@ -22,7 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-class CameraActivity extends AppCompatActivity {
+public class CameraActivity extends AppCompatActivity {
 
     private Camera mCamera;
     private CameraPreview mCameraPreview;
