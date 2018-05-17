@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -26,7 +27,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private Camera mCamera;
     private CameraPreview mCameraPreview;
-    private String imagePath;
+    private String imagePath, imageName;
     private final int ASK_MULTIPLE_PERMISSION_REQUEST_CODE = 72;
 
     @Override
@@ -42,6 +43,7 @@ public class CameraActivity extends AppCompatActivity {
         }
 
         imagePath = getIntent().getStringExtra(CustomCamera.IMAGE_PATH);
+        imageName = getIntent().getStringExtra("imageName");
         mCamera = getCameraInstance(getIntent().getFloatExtra("megapixels", 0));
         mCameraPreview = new CameraPreview(this, mCamera);
         FrameLayout preview = findViewById(R.id.camera_preview);
@@ -111,7 +113,7 @@ public class CameraActivity extends AppCompatActivity {
         }
     };
 
-    private static File getOutputMediaFile(String imagePath) {
+    private File getOutputMediaFile(String imagePath) {
         File mediaStorageDir = new File(imagePath);
         if (!mediaStorageDir.exists()) {
             if (!mediaStorageDir.mkdirs()) {
@@ -119,15 +121,30 @@ public class CameraActivity extends AppCompatActivity {
                 return null;
             }
         }
+
+        if (TextUtils.isEmpty(imageName))
+            return createImageWithTimeStamp(mediaStorageDir.getPath());
+        return createImageWithCustomName(mediaStorageDir.getPath(), imageName);
+    }
+
+    private File createImageWithTimeStamp(String imagePath){
         // Create a media file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss")
                 .format(new Date());
         File mediaFile;
-        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+        mediaFile = new File(imagePath + File.separator
                 + "IMG_" + timeStamp + ".jpg");
-
         return mediaFile;
     }
+
+    private File createImageWithCustomName(String imagePath, String imageName){
+        File mediaFile;
+        mediaFile = new File(imagePath + File.separator
+                + imageName + ".jpg");
+        return mediaFile;
+    }
+
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,

@@ -10,6 +10,7 @@ public class CustomCamera {
     private String path;
     public static final int IMAGE_SAVE_REQUEST = 72;
     public static final String IMAGE_PATH = "imagePath";
+    private String imageName;
 
     public CustomCamera(Activity activity,
                         float requiredMegaPixel,
@@ -22,9 +23,16 @@ public class CustomCamera {
     public void openCamera() {
         Intent intent = new Intent(activity, CameraActivity.class);
         intent.putExtra("megapixels", requiredMegaPixel);
+        intent.putExtra("imageName", getImageName());
         intent.putExtra(IMAGE_PATH, path);
         activity.startActivityForResult(intent, IMAGE_SAVE_REQUEST);
     }
 
+    public String getImageName() {
+        return imageName;
+    }
 
+    public void setImageName(String imageName) {
+        this.imageName = imageName;
+    }
 }
