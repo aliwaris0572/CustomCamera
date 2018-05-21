@@ -12,6 +12,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Surface;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -24,15 +25,14 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class CameraActivity extends AppCompatActivity {
 
     private Camera mCamera;
-    private CameraPreview mCameraPreview;
     private String imagePath, imageName, capturedImagePath;
     private float megapixels;
     private Group confirmGroup;
-    private ImageButton yes, no;
     private final int ASK_MULTIPLE_PERMISSION_REQUEST_CODE = 72;
     private byte[] imageData;
 
@@ -53,8 +53,6 @@ public class CameraActivity extends AppCompatActivity {
         megapixels = getIntent().getFloatExtra("megapixels", 0);
 
         confirmGroup = findViewById(R.id.confirmGroup);
-        yes = findViewById(R.id.button_yes);
-        no = findViewById(R.id.button_no);
         confirmGroup.setVisibility(View.GONE);
 
         final ImageButton captureButton = findViewById(R.id.button_capture);
@@ -63,9 +61,16 @@ public class CameraActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (confirmGroup.getVisibility() == View.GONE) {
                     confirmGroup.setVisibility(View.VISIBLE);
-                    mCamera.takePicture(null, null, mPicture);
                     captureButton.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
                             R.drawable.round_replay_black_36dp));
+
+                    mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                        @Override
+                        public void onAutoFocus(boolean success, Camera camera) {
+                            if(success)
+                                mCamera.takePicture(null, null, mPicture);
+                        }
+                    });
                 } else {
                     clearImageData();
                     CameraActivity.this.recreate();
@@ -73,14 +78,14 @@ public class CameraActivity extends AppCompatActivity {
             }
         });
 
-        yes.setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.button_yes).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 saveImage();
             }
         });
 
-        no.setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.button_no).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 clearImageData();
@@ -92,9 +97,11 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
         mCamera = getCameraInstance(megapixels);
-        mCameraPreview = new CameraPreview(this, mCamera);
+        CameraPreview mCameraPreview = new CameraPreview(this, mCamera);
         FrameLayout preview = findViewById(R.id.camera_preview);
+        preview.removeAllViews();
         preview.addView(mCameraPreview);
 
         // Update UI after resume.
@@ -138,7 +145,32 @@ public class CameraActivity extends AppCompatActivity {
         Camera camera = null;
         try {
             camera = Camera.open(android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK);
+            camera.startPreview();
+
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            Camera.getCameraInfo(findCameraFacing(), info);
+            int rotation = getWindowManager().getDefaultDisplay()
+                    .getRotation();
+            int degrees = 0;
+            switch (rotation) {
+                case Surface.ROTATION_0: degrees = 0; break;
+                case Surface.ROTATION_90: degrees = 90; break;
+                case Surface.ROTATION_180: degrees = 180; break;
+                case Surface.ROTATION_270: degrees = 270; break;
+            }
+
+            int result;
+            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                result = (info.orientation + degrees) % 360;
+                result = (360 - result) % 360;  // compensate the mirror
+            } else {  // back-facing
+                result = (info.orientation - degrees + 360) % 360;
+            }
+            camera.setDisplayOrientation(result);
+
             Camera.Parameters params = camera.getParameters();
+            params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+            params.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
 
             // Check what resolutions are supported by your camera
             List<Camera.Size> sizes = params.getSupportedPictureSizes();
@@ -155,8 +187,11 @@ public class CameraActivity extends AppCompatActivity {
                     break;
                 }
             }
-            Log.i("CUSTOM_CAMERA", "Chosen resolution: " + mSize.width + " " + mSize.height);
-            mCamera.setParameters(params);
+            if (mSize != null) {
+                Log.i("CUSTOM_CAMERA", "Chosen resolution: " + mSize.width + " " + mSize.height);
+            }
+
+            camera .setParameters(params);
         } catch (Exception e) {
             // cannot get camera or does not exist
             Log.e("CUSTOM_CAMERA", e.getMessage());
@@ -169,6 +204,7 @@ public class CameraActivity extends AppCompatActivity {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
             imageData = data;
+            camera.stopPreview();
         }
     };
 
@@ -188,7 +224,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private File createImageWithTimeStamp(String imagePath) {
         // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss")
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH)
                 .format(new Date());
         File mediaFile;
         mediaFile = new File(imagePath + File.separator
@@ -229,4 +265,24 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
+    private int findCameraFacing()
+
+    {
+        int cameraId = -1;
+        // Search for the front facing camera
+        int numberOfCameras = Camera.getNumberOfCameras();
+        for (int i = 0; i < numberOfCameras; i++) {
+            Camera.CameraInfo info = new Camera.CameraInfo();
+            Camera.getCameraInfo(i, info);
+            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                cameraId = i;
+                break;
+            }
+            if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                cameraId = i;
+                break;
+            }
+        }
+        return cameraId;
+    }
 }
