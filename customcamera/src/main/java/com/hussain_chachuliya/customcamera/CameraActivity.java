@@ -62,15 +62,16 @@ public class CameraActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (confirmGroup.getVisibility() == View.GONE) {
-                    confirmGroup.setVisibility(View.VISIBLE);
-                    captureButton.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
-                            R.drawable.round_replay_black_36dp));
-
                     mCamera.autoFocus(new Camera.AutoFocusCallback() {
                         @Override
                         public void onAutoFocus(boolean success, Camera camera) {
-                            if(success)
+                            if (success) {
                                 mCamera.takePicture(null, null, mPicture);
+                                confirmGroup.setVisibility(View.VISIBLE);
+                                captureButton.setImageDrawable(ContextCompat.getDrawable(
+                                        CameraActivity.this,
+                                        R.drawable.round_replay_black_36dp));
+                            }
                         }
                     });
                 } else {
@@ -154,10 +155,18 @@ public class CameraActivity extends AppCompatActivity {
                     .getRotation();
             int degrees = 0;
             switch (rotation) {
-                case Surface.ROTATION_0: degrees = 0; break;
-                case Surface.ROTATION_90: degrees = 90; break;
-                case Surface.ROTATION_180: degrees = 180; break;
-                case Surface.ROTATION_270: degrees = 270; break;
+                case Surface.ROTATION_0:
+                    degrees = 0;
+                    break;
+                case Surface.ROTATION_90:
+                    degrees = 90;
+                    break;
+                case Surface.ROTATION_180:
+                    degrees = 180;
+                    break;
+                case Surface.ROTATION_270:
+                    degrees = 270;
+                    break;
             }
 
             int result;
@@ -192,7 +201,7 @@ public class CameraActivity extends AppCompatActivity {
                 Log.i("CUSTOM_CAMERA", "Chosen resolution: " + mSize.width + " " + mSize.height);
             }
 
-            camera .setParameters(params);
+            camera.setParameters(params);
         } catch (Exception e) {
             // cannot get camera or does not exist
             Log.e("CUSTOM_CAMERA", e.getMessage());

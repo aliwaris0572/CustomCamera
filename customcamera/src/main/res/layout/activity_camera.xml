@@ -61,7 +61,6 @@
         android:id="@+id/confirmGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="visible"
         app:constraint_referenced_ids="button_yes,button_no" />
 
 </android.support.constraint.ConstraintLayout>
