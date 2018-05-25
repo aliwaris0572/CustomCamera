@@ -12,7 +12,8 @@
         android:layout_height="match_parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" >
+    </FrameLayout>
 
     <ImageButton
         android:id="@+id/button_capture"
@@ -21,7 +22,7 @@
         android:layout_gravity="center"
         android:layout_marginBottom="8dp"
         android:background="@drawable/circle_grey"
-        android:padding="25dp"
+        android:padding="16dp"
         android:src="@drawable/round_photo_camera_black_36dp"
         app:layout_constraintBottom_toBottomOf="@+id/camera_preview"
         app:layout_constraintEnd_toEndOf="parent"
@@ -36,7 +37,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:background="@drawable/circle_grey"
-        android:padding="25dp"
+        android:padding="16dp"
         android:src="@drawable/round_check_black_36dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -51,7 +52,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:background="@drawable/circle_grey"
-        android:padding="25dp"
+        android:padding="16dp"
         android:src="@drawable/round_clear_black_36dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/button_capture"
@@ -62,5 +63,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:constraint_referenced_ids="button_yes,button_no" />
+
+    <ImageButton
+        android:id="@+id/btnMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/circle_grey"
+        android:padding="10dp"
+        android:src="@drawable/round_camera_rear_black_24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

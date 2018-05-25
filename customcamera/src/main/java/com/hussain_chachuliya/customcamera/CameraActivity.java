@@ -31,11 +31,14 @@ import java.util.Objects;
 public class CameraActivity extends AppCompatActivity {
 
     private Camera mCamera;
+    FrameLayout preview;
     private String imagePath, imageName, capturedImagePath;
     private float megapixels;
     private Group confirmGroup;
     private final int ASK_MULTIPLE_PERMISSION_REQUEST_CODE = 72;
     private byte[] imageData;
+
+    private int CAMERA_MODE = Camera.CameraInfo.CAMERA_FACING_BACK;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,28 +58,58 @@ public class CameraActivity extends AppCompatActivity {
         megapixels = getIntent().getFloatExtra("megapixels", 0);
 
         confirmGroup = findViewById(R.id.confirmGroup);
+        preview = findViewById(R.id.camera_preview);
         confirmGroup.setVisibility(View.GONE);
+
+        final ImageButton btnMode = findViewById(R.id.btnMode);
+        btnMode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (CAMERA_MODE == Camera.CameraInfo.CAMERA_FACING_BACK) {
+                    CAMERA_MODE = Camera.CameraInfo.CAMERA_FACING_FRONT;
+                    btnMode.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
+                            R.drawable.round_camera_front_black_24dp));
+                } else {
+                    CAMERA_MODE = Camera.CameraInfo.CAMERA_FACING_BACK;
+                    btnMode.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
+                            R.drawable.round_camera_rear_black_24dp));
+                }
+                preview.removeAllViews();
+                onResume();
+            }
+        });
 
         final ImageButton captureButton = findViewById(R.id.button_capture);
         captureButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (confirmGroup.getVisibility() == View.GONE) {
-                    mCamera.autoFocus(new Camera.AutoFocusCallback() {
-                        @Override
-                        public void onAutoFocus(boolean success, Camera camera) {
-                            if (success) {
-                                mCamera.takePicture(null, null, mPicture);
-                                confirmGroup.setVisibility(View.VISIBLE);
-                                captureButton.setImageDrawable(ContextCompat.getDrawable(
-                                        CameraActivity.this,
-                                        R.drawable.round_replay_black_36dp));
+                    List<String> supportedFocusModes = mCamera.getParameters().getSupportedFocusModes();
+                    boolean hasAutoFocus = supportedFocusModes != null
+                            && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO);
+                    if (hasAutoFocus) {
+                        mCamera.autoFocus(new Camera.AutoFocusCallback() {
+                            @Override
+                            public void onAutoFocus(boolean success, Camera camera) {
+                                if (success) {
+                                    mCamera.takePicture(null, null, mPicture);
+                                    confirmGroup.setVisibility(View.VISIBLE);
+                                    captureButton.setImageDrawable(ContextCompat.getDrawable(
+                                            CameraActivity.this,
+                                            R.drawable.round_replay_black_36dp));
+                                }
                             }
-                        }
-                    });
+                        });
+                    } else {
+                        mCamera.takePicture(null, null, mPicture);
+                        confirmGroup.setVisibility(View.VISIBLE);
+                        captureButton.setImageDrawable(ContextCompat.getDrawable(
+                                CameraActivity.this,
+                                R.drawable.round_replay_black_36dp));
+                    }
                 } else {
-                    clearImageData();
-                    CameraActivity.this.recreate();
+                    preview.removeAllViews();
+                    onResume();
                 }
             }
         });
@@ -100,10 +133,8 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        mCamera = getCameraInstance(megapixels);
+        mCamera = getCameraInstance(megapixels, CAMERA_MODE);
         CameraPreview mCameraPreview = new CameraPreview(this, mCamera);
-        FrameLayout preview = findViewById(R.id.camera_preview);
-        preview.removeAllViews();
         preview.addView(mCameraPreview);
 
         // Update UI after resume.
@@ -113,6 +144,12 @@ public class CameraActivity extends AppCompatActivity {
         captureButton.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
                 R.drawable.round_photo_camera_black_36dp));
 
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        preview.removeAllViews();
     }
 
     private void saveImage() {
@@ -143,10 +180,10 @@ public class CameraActivity extends AppCompatActivity {
         imageData = null;
     }
 
-    private Camera getCameraInstance(float requiredMegapixel) {
+    private Camera getCameraInstance(float requiredMegapixel, int mode) {
         Camera camera = null;
         try {
-            camera = Camera.open(android.hardware.Camera.CameraInfo.CAMERA_FACING_BACK);
+            camera = Camera.open(mode);
             camera.startPreview();
 
             Camera.CameraInfo info = new Camera.CameraInfo();
@@ -191,7 +228,7 @@ public class CameraActivity extends AppCompatActivity {
             Camera.Size mSize = null;
             for (Camera.Size size : sizes) {
                 float megapixel = (float) size.width * (float) size.height / 1000000;
-                if (megapixel < requiredMegapixel) {
+                if (megapixel <= requiredMegapixel) {
                     mSize = size;
                     params.setPictureSize(mSize.width, mSize.height);
                     break;
