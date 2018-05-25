@@ -1,3 +1,5 @@
+[![](https://jitpack.io/v/aliwaris0572/CustomCamera.svg)](https://jitpack.io/#aliwaris0572/CustomCamera)
+
 # CustomCamera
 This library helps user to control camera resolution.
 Check MainActivity.java for more details on how to use.
@@ -17,5 +19,5 @@ Add it in your root build.gradle at the end of repositories
 Then, add this in you app level build.gradle
 
     dependencies {
-	            implementation 'com.github.aliwaris0572:CustomCamera:1.0'
+	            implementation 'com.github.aliwaris0572:CustomCamera:{latest_version}'
 	    }
