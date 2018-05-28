@@ -1,6 +1,7 @@
 package com.hussain_chachuliya.customcamera;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 
 public class CustomCamera {
@@ -12,15 +13,31 @@ public class CustomCamera {
     public static final String IMAGE_PATH = "imagePath";
     private String imageName;
 
-    public CustomCamera(Activity activity,
-                        float requiredMegaPixel,
-                        String path) {
-        this.requiredMegaPixel = requiredMegaPixel;
-        this.activity = activity;
-        this.path = path;
+    public static CustomCamera init(){
+        return new CustomCamera();
     }
 
-    public void openCamera() {
+    public CustomCamera with(Activity activity){
+        this.activity = activity;
+        return this;
+    }
+
+    public CustomCamera setRequiredMegaPixel(float megaPixel){
+        this.requiredMegaPixel = megaPixel;
+        return this;
+    }
+
+    public CustomCamera setPath(String path){
+        this.path = path;
+        return this;
+    }
+
+    public CustomCamera setImageName(String imageName) {
+        this.imageName = imageName;
+        return this;
+    }
+
+    public void start() {
         Intent intent = new Intent(activity, CameraActivity.class);
         intent.putExtra("megapixels", requiredMegaPixel);
         intent.putExtra("imageName", getImageName());
@@ -30,9 +47,5 @@ public class CustomCamera {
 
     public String getImageName() {
         return imageName;
-    }
-
-    public void setImageName(String imageName) {
-        this.imageName = imageName;
     }
 }

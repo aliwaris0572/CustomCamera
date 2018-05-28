@@ -24,23 +24,24 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnCamera).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                CustomCamera customCamera = new CustomCamera(
-                        MainActivity.this,
-                        1.5f,
-                        Environment.getExternalStorageDirectory().getAbsolutePath() + "/CustomCamera");
-                customCamera.openCamera();
+                CustomCamera.init()
+                        .with(MainActivity.this)
+                        .setRequiredMegaPixel(1.5f)
+                        .setPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/CustomCamera")
+                        .start();
+
             }
         });
 
         findViewById(R.id.btnCamWithImgName).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                CustomCamera customCamera = new CustomCamera(
-                        MainActivity.this,
-                        1.5f,
-                        Environment.getExternalStorageDirectory().getAbsolutePath() + "/CustomCamera");
-                customCamera.setImageName(imageName.getText().toString());
-                customCamera.openCamera();
+                CustomCamera.init()
+                        .with(MainActivity.this)
+                        .setRequiredMegaPixel(1.5f)
+                        .setPath(Environment.getExternalStorageDirectory().getAbsolutePath() + "/CustomCamera")
+                        .setImageName(imageName.getText().toString())
+                        .start();
             }
         });
     }
