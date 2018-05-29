@@ -55,6 +55,8 @@ public class CameraActivity extends AppCompatActivity {
             Bitmap bitmap = getScaledBitmapFromSdcard(imagePath, imageName);
             saveImage(bitmap);
         }
+        else
+            this.finish();
     }
 
     private Bitmap getScaledBitmapFromSdcard(String folder, String fileName) {
