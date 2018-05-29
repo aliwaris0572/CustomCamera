@@ -1,193 +1,91 @@
 package com.hussain_chachuliya.customcamera;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.Camera;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.constraint.Group;
-import android.support.v4.content.ContextCompat;
+import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.Surface;
-import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 
 public class CameraActivity extends AppCompatActivity {
-
-    private Camera mCamera;
-    FrameLayout preview;
-    private String imagePath, imageName, capturedImagePath;
+    private String imagePath, imageName;
     private float megapixels;
-    private Group confirmGroup;
-    private final int ASK_MULTIPLE_PERMISSION_REQUEST_CODE = 72;
-    private byte[] imageData;
-
-    private int CAMERA_MODE = Camera.CameraInfo.CAMERA_FACING_BACK;
+    private final int REQUEST_CODE = 1;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Objects.requireNonNull(getSupportActionBar()).hide();
-        setContentView(R.layout.activity_camera);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(new String[]{Manifest.permission.CAMERA,
-                            Manifest.permission.READ_EXTERNAL_STORAGE,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    ASK_MULTIPLE_PERMISSION_REQUEST_CODE);
-        }
 
         imagePath = getIntent().getStringExtra(CustomCamera.IMAGE_PATH);
         imageName = getIntent().getStringExtra("imageName");
         megapixels = getIntent().getFloatExtra("megapixels", 0);
 
-        confirmGroup = findViewById(R.id.confirmGroup);
-        preview = findViewById(R.id.camera_preview);
-        confirmGroup.setVisibility(View.GONE);
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File photo = createFile(imagePath, imageName);
+        Uri uri = FileProvider.getUriForFile(CameraActivity.this,
+                "com.hussain_chachuliya.customcamera.fileprovider", photo);
+        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+        startActivityForResult(intent, REQUEST_CODE);
+    }
 
-        final ImageButton btnMode = findViewById(R.id.btnMode);
-        btnMode.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (CAMERA_MODE == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                    CAMERA_MODE = Camera.CameraInfo.CAMERA_FACING_FRONT;
-                    btnMode.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
-                            R.drawable.round_camera_front_black_24dp));
-                } else {
-                    CAMERA_MODE = Camera.CameraInfo.CAMERA_FACING_BACK;
-                    btnMode.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
-                            R.drawable.round_camera_rear_black_24dp));
-                }
-                preview.removeAllViews();
-                onResume();
-            }
-        });
+    private File createFile(String folder, String fileName) {
+        File myDir = new File(folder);
+        myDir.mkdirs();
 
-        final ImageButton captureButton = findViewById(R.id.button_capture);
-        captureButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (confirmGroup.getVisibility() == View.GONE) {
-                    List<String> supportedFocusModes = mCamera.getParameters().getSupportedFocusModes();
-                    boolean hasAutoFocus = supportedFocusModes != null
-                            && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO);
-                    if (hasAutoFocus) {
-                        mCamera.autoFocus(new Camera.AutoFocusCallback() {
-                            @Override
-                            public void onAutoFocus(boolean success, Camera camera) {
-                                if (success) {
-                                    mCamera.takePicture(null, null, mPicture);
-                                    confirmGroup.setVisibility(View.VISIBLE);
-                                    captureButton.setImageDrawable(ContextCompat.getDrawable(
-                                            CameraActivity.this,
-                                            R.drawable.round_replay_black_36dp));
-                                }
-                            }
-                        });
-                    } else {
-                        mCamera.takePicture(null, null, mPicture);
-                        confirmGroup.setVisibility(View.VISIBLE);
-                        captureButton.setImageDrawable(ContextCompat.getDrawable(
-                                CameraActivity.this,
-                                R.drawable.round_replay_black_36dp));
-                    }
-                } else {
-                    preview.removeAllViews();
-                    onResume();
-                }
-            }
-        });
-
-        findViewById(R.id.button_yes).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveImage();
-            }
-        });
-
-        findViewById(R.id.button_no).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                clearImageData();
-                CameraActivity.this.finish();
-            }
-        });
+        File file = new File(myDir, fileName);
+        if (file.exists()) file.delete();
+        return file;
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        mCamera = getCameraInstance(megapixels, CAMERA_MODE);
-        CameraPreview mCameraPreview = new CameraPreview(this, mCamera);
-        preview.addView(mCameraPreview);
-
-        // Update UI after resume.
-        clearImageData();
-        confirmGroup.setVisibility(View.GONE);
-        ImageButton captureButton = findViewById(R.id.button_capture);
-        captureButton.setImageDrawable(ContextCompat.getDrawable(CameraActivity.this,
-                R.drawable.round_photo_camera_black_36dp));
-
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
+            Bitmap bitmap = getScaledBitmapFromSdcard(imagePath, imageName);
+            saveImage(bitmap);
+        }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        preview.removeAllViews();
-    }
+    private Bitmap getScaledBitmapFromSdcard(String folder, String fileName) {
+        String filePath = String.format("%s/%s",
+                folder,
+                fileName);
 
-    private void saveImage() {
-        File pictureFile = getOutputMediaFile(imagePath);
-        if (pictureFile == null) {
-            return;
+        Bitmap bitmap = BitmapFactory.decodeFile(filePath);
+
+        // Iterate through all available resolutions and choose one.
+        // The chosen resolution will be stored in mSize.
+        Camera.Size mSize;
+        for (Camera.Size size : getSupportedPictureSizes()) {
+            float megapixel = (float) size.width * (float) size.height / 1000000;
+            if (megapixel <= megapixels) {
+                mSize = size;
+                return ScalingUtils.createScaledBitmap(bitmap, mSize.width, mSize.height,
+                        ScalingUtils.ScalingLogic.FIT);
+            }
         }
 
-        try {
-            FileOutputStream fos = new FileOutputStream(pictureFile);
-            fos.write(imageData);
-            fos.close();
-            capturedImagePath = pictureFile.getAbsolutePath();
-        } catch (FileNotFoundException e) {
-            Log.e("ERROR_FILE_NOT_FOUND", e.getMessage());
-        } catch (IOException e) {
-            Log.e("ERROR_IO_EXCEPTION", e.getMessage());
-        }
-
-        clearImageData();
-        Intent intent = new Intent();
-        intent.putExtra(CustomCamera.IMAGE_PATH, capturedImagePath);
-        setResult(RESULT_OK, intent);
-        CameraActivity.this.finish();
+        return null;
     }
 
-    private void clearImageData() {
-        imageData = null;
-    }
-
-    private Camera getCameraInstance(float requiredMegapixel, int mode) {
-        Camera camera = null;
+    private List<Camera.Size> getSupportedPictureSizes() {
+        Camera camera;
         try {
-            camera = Camera.open(mode);
-            camera.startPreview();
-
+            int CAMERA_MODE = Camera.CameraInfo.CAMERA_FACING_BACK;
+            camera = Camera.open(CAMERA_MODE);
             Camera.CameraInfo info = new Camera.CameraInfo();
-            Camera.getCameraInfo(findCameraFacing(), info);
+            Camera.getCameraInfo(CAMERA_MODE, info);
             int rotation = getWindowManager().getDefaultDisplay()
                     .getRotation();
             int degrees = 0;
@@ -206,6 +104,7 @@ public class CameraActivity extends AppCompatActivity {
                     break;
             }
 
+
             int result;
             if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
                 result = (info.orientation + degrees) % 360;
@@ -214,122 +113,35 @@ public class CameraActivity extends AppCompatActivity {
                 result = (info.orientation - degrees + 360) % 360;
             }
             camera.setDisplayOrientation(result);
-
-            Camera.Parameters params = camera.getParameters();
-            params.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
-            params.setFlashMode(Camera.Parameters.FLASH_MODE_AUTO);
-
             // Check what resolutions are supported by your camera
-            List<Camera.Size> sizes = params.getSupportedPictureSizes();
-            Log.i("CUSTOM_CAMERA", "Available resolution: " + sizes);
-
-            // Iterate through all available resolutions and choose one.
-            // The chosen resolution will be stored in mSize.
-            Camera.Size mSize = null;
-            for (Camera.Size size : sizes) {
-                float megapixel = (float) size.width * (float) size.height / 1000000;
-                if (megapixel <= requiredMegapixel) {
-                    mSize = size;
-                    params.setPictureSize(mSize.width, mSize.height);
-                    break;
-                }
-            }
-            if (mSize != null) {
-                Log.i("CUSTOM_CAMERA", "Chosen resolution: " + mSize.width + " " + mSize.height);
-            }
-
-            camera.setParameters(params);
+            Camera.Parameters params = camera.getParameters();
+            return params.getSupportedPictureSizes();
         } catch (Exception e) {
             // cannot get camera or does not exist
             Log.e("CUSTOM_CAMERA", e.getMessage());
         }
-
-        return camera;
+        return new ArrayList<>();
     }
 
-    Camera.PictureCallback mPicture = new Camera.PictureCallback() {
-        @Override
-        public void onPictureTaken(byte[] data, Camera camera) {
-            imageData = data;
-            camera.stopPreview();
+    private void saveImage(Bitmap finalBitmap) {
+        File myDir = new File(imagePath);
+        myDir.mkdirs();
+
+        File file = new File(myDir, imageName);
+        if (file.exists()) file.delete();
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 80, out);
+            out.flush();
+            out.close();
+
+            Intent intent = new Intent();
+            intent.putExtra(CustomCamera.IMAGE_PATH, file.getAbsolutePath());
+            setResult(RESULT_OK, intent);
+            CameraActivity.this.finish();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    };
-
-    private File getOutputMediaFile(String imagePath) {
-        File mediaStorageDir = new File(imagePath);
-        if (!mediaStorageDir.exists()) {
-            if (!mediaStorageDir.mkdirs()) {
-                Log.d("MyCameraApp", "failed to create directory");
-                return null;
-            }
-        }
-
-        if (TextUtils.isEmpty(imageName))
-            return createImageWithTimeStamp(mediaStorageDir.getPath());
-        return createImageWithCustomName(mediaStorageDir.getPath(), imageName);
-    }
-
-    private File createImageWithTimeStamp(String imagePath) {
-        // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH)
-                .format(new Date());
-        File mediaFile;
-        mediaFile = new File(imagePath + File.separator
-                + "IMG_" + timeStamp + ".jpg");
-        return mediaFile;
-    }
-
-    private File createImageWithCustomName(String imagePath, String imageName) {
-        File mediaFile;
-        mediaFile = new File(imagePath + File.separator
-                + imageName + ".jpg");
-        return mediaFile;
-    }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        clearImageData();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case ASK_MULTIPLE_PERMISSION_REQUEST_CODE:
-                for (int result : grantResults) {
-                    if (result == PackageManager.PERMISSION_DENIED) {
-                        Toast.makeText(CameraActivity.this,
-                                "Insufficient Privileges. Please grant requested permissions.",
-                                Toast.LENGTH_SHORT).show();
-                        this.finish();
-                        break;
-                    }
-                }
-                break;
-        }
-    }
-
-    private int findCameraFacing()
-
-    {
-        int cameraId = -1;
-        // Search for the front facing camera
-        int numberOfCameras = Camera.getNumberOfCameras();
-        for (int i = 0; i < numberOfCameras; i++) {
-            Camera.CameraInfo info = new Camera.CameraInfo();
-            Camera.getCameraInfo(i, info);
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                cameraId = i;
-                break;
-            }
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                cameraId = i;
-                break;
-            }
-        }
-        return cameraId;
     }
 }

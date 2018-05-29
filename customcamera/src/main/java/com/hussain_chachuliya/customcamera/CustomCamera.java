@@ -1,7 +1,6 @@
 package com.hussain_chachuliya.customcamera;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 
 public class CustomCamera {
@@ -46,6 +45,6 @@ public class CustomCamera {
     }
 
     public String getImageName() {
-        return imageName;
+        return imageName == null ? "test.jpg" : imageName + ".jpg";
     }
 }
