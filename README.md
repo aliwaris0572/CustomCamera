@@ -1,3 +1,5 @@
+![192px](https://user-images.githubusercontent.com/34313493/40709520-16717100-6418-11e8-9177-94a43e42233d.png)
+
 [![](https://jitpack.io/v/aliwaris0572/CustomCamera.svg)](https://jitpack.io/#aliwaris0572/CustomCamera)
 
 # CustomCamera
