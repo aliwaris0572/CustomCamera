@@ -1,16 +1,21 @@
 package com.hussain_chachuliya.customcamera;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.hardware.Camera;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Surface;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -21,22 +26,22 @@ public class CameraActivity extends AppCompatActivity {
     private String imagePath, imageName;
     private float megapixels;
     private final int REQUEST_CODE = 1;
+    private final int ASK_MULTIPLE_PERMISSION_REQUEST_CODE = 72;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(new String[]{Manifest.permission.CAMERA,
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    ASK_MULTIPLE_PERMISSION_REQUEST_CODE);
+        }
+
         imagePath = getIntent().getStringExtra(CustomCamera.IMAGE_PATH);
         imageName = getIntent().getStringExtra("imageName");
         megapixels = getIntent().getFloatExtra("megapixels", 0);
-
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        File photo = createFile(imagePath, imageName);
-        Uri uri = FileProvider.getUriForFile(CameraActivity.this,
-                "com.hussain_chachuliya.customcamera.fileprovider", photo);
-        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-        startActivityForResult(intent, REQUEST_CODE);
     }
 
     private File createFile(String folder, String fileName) {
@@ -54,8 +59,7 @@ public class CameraActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE && resultCode == RESULT_OK) {
             Bitmap bitmap = getScaledBitmapFromSdcard(imagePath, imageName);
             saveImage(bitmap);
-        }
-        else
+        } else
             this.finish();
     }
 
@@ -144,6 +148,37 @@ public class CameraActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case ASK_MULTIPLE_PERMISSION_REQUEST_CODE:
+                boolean isAllPermissionsGranted = true;
+                for (int result : grantResults) {
+                    if (result == PackageManager.PERMISSION_DENIED) {
+                        Toast.makeText(CameraActivity.this,
+                                "Insufficient Privileges. Please grant requested permissions.",
+                                Toast.LENGTH_SHORT).show();
+                        isAllPermissionsGranted = false;
+                        this.finish();
+                        break;
+                    }
+                }
+                if(isAllPermissionsGranted){
+                    Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    File photo = createFile(imagePath, imageName);
+                    Uri uri = FileProvider.getUriForFile(CameraActivity.this,
+                            "com.hussain_chachuliya.customcamera.fileprovider", photo);
+                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+                    startActivityForResult(intent, REQUEST_CODE);
+                }
+                break;
         }
     }
 }
